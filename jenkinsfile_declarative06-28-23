@@ -1,0 +1,65 @@
+pipeline{
+  agent {
+    label "MasterNode"
+ }
+ tools {
+   maven "maven3.9.2"
+ }
+ //options{}
+ //triggers{}
+ stages {
+   stage ('1clone'){
+     steps{
+         sh "echo 'cloning the lastet application version' "
+         git "https://github.com/SeariseTech/maven-web-application-1"
+         sh "echo 'latest application version available for testing and build' "
+      }
+   }
+   stage('2TestBuild'){
+      steps{
+        sh "echo 'running JUnit-test-cases' "
+        sh "echo 'testing must passed to create artifacts ' "
+        sh "mvn clean package"
+      }
+   }
+        stage('3CodeQualityAnalysis') {
+    steps{
+        sh "echo setup sonarQube authentication"
+        sh "echo 'Perfoming CodeQualityAnalysis' "
+        sh "mvn sonar:sonar"   
+      }
+   }
+   stage('4UploadArtifacts') {
+    steps{
+      sh "echo configure nexus authentication"
+      //sh "mvn deploy"
+      sh "echo artifacts uploaded"
+    }
+   }
+  stage('5deploy') {
+    steps{
+      deploy adapters: [tomcat9(credentialsId: 'tomcat2', path: '', url: 'http://34.229.11.180:1978/')], contextPath: null, war: 'target/*war'
+      }
+   }
+ }
+   post{
+   always{
+emailext body: '''The new software application developed by SeariseTech Engineers for Lamborghini project is successful.
+Great Job team!!!
+
+SeariseTech.''', recipientProviders: [buildUser(), developers(), contributor()], subject: 'Build Success', to: 'omotennyayo@gmail.com'
+   }
+   success{
+emailext body: '''The new software application developed by SeariseTech Engineers for Lamborghini project is successful.
+Great Job team!!!
+
+SeariseTech.''', recipientProviders: [buildUser(), developers(), contributor()], subject: 'Build Success', to: 'omotennyayo@gmail.com'
+   }
+   failure{
+mailext body: '''The new software application developed by SeariseTech Engineers for Lamborghini project failed.
+We need to put more effort to get this job done Guys!!!
+
+SeariseTech.''', recipientProviders: [buildUser(), developers(), contributor()], subject: 'Build Failed', to: 'omotennyayo@gmail.com'      
+   }
+ }
+} 
